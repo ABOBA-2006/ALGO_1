@@ -5,6 +5,15 @@
 #include "defines.h"
 
 
+
+bool isFileEmpty(FILE *file) {
+    fseek(file, 0, SEEK_END);
+    long size = ftell(file);
+    fseek(file, 0, SEEK_SET);
+    return size == 0;
+}
+
+
 void splitData(struct FILES *files, int subArrayLength, bool isBFile){
 
     for(int i = 0; i < subArrayLength; i++){
@@ -37,22 +46,24 @@ void mergeData(struct FILES *files, int subArrayLength) {
         yAmount = subArrayLength;
     }
 
-    while(!feof(files->file_B) && !feof(files->file_C)) {
+    while(!feof(files->file_B) || !feof(files->file_C)) {
 
-        while(xAmount < subArrayLength && yAmount < subArrayLength) {
-            if(x < y) {
-                fprintf(files->file_A, "%d\n", x);
-                fflush(files->file_A);
-                xAmount++;
-                if(fscanf(files->file_B, "%d", &x) == EOF) {
-                    xAmount = subArrayLength;
-                }
-            }else {
-                fprintf(files->file_A, "%d\n", y);
-                fflush(files->file_A);
-                yAmount++;
-                if(fscanf(files->file_C, "%d", &y) == EOF) {
-                    yAmount = subArrayLength;
+        if(!feof(files->file_B) && !feof(files->file_C)) {
+            while(xAmount < subArrayLength && yAmount < subArrayLength) {
+                if(x < y) {
+                    fprintf(files->file_A, "%d\n", x);
+                    fflush(files->file_A);
+                    xAmount++;
+                    if(fscanf(files->file_B, "%d", &x) == EOF) {
+                        xAmount = subArrayLength;
+                    }
+                }else {
+                    fprintf(files->file_A, "%d\n", y);
+                    fflush(files->file_A);
+                    yAmount++;
+                    if(fscanf(files->file_C, "%d", &y) == EOF) {
+                        yAmount = subArrayLength;
+                    }
                 }
             }
         }
@@ -75,14 +86,30 @@ void mergeData(struct FILES *files, int subArrayLength) {
             }
         }
 
-        xAmount = 0;
-        yAmount = 0;
+        xAmount = feof(files->file_B)? xAmount:0;
+        yAmount = feof(files->file_C)? yAmount:0;
     }
 }
 
 
+void extendedSort(struct FILES *files, int subArrayLength) {
+    do {
+        freopen(PATH_A, "r+", files->file_A);
+        freopen(PATH_B, "w+", files->file_B);
+        freopen(PATH_C, "w+", files->file_C);
+        splitData(files, subArrayLength, true);
+        freopen(PATH_A, "w+", files->file_A);
+        freopen(PATH_B, "r+", files->file_B);
+        freopen(PATH_C, "r+", files->file_C);
+        mergeData(files, subArrayLength);
+
+        subArrayLength*=2;
+    }while (!isFileEmpty(files->file_C));
+}
+
+
 int main(){
-    int currenSubArrayLength = 4;
+    int startSubArrayLength = 1;
     struct FILES *myFiles = (struct FILES *)malloc(sizeof(struct FILES));
 
     myFiles->file_A = fopen(PATH_A, "r+");
@@ -94,16 +121,7 @@ int main(){
         exit(1);
     }
 
-    freopen(PATH_A, "r+", myFiles->file_A);
-    freopen(PATH_B, "w+", myFiles->file_B);
-    freopen(PATH_C, "w+", myFiles->file_C);
-    splitData(myFiles, currenSubArrayLength, true);
-    freopen(PATH_A, "w+", myFiles->file_A);
-    freopen(PATH_B, "r+", myFiles->file_B);
-    freopen(PATH_C, "r+", myFiles->file_C);
-    mergeData(myFiles, currenSubArrayLength);
-
-
+    extendedSort(myFiles, startSubArrayLength);
 
     fclose(myFiles->file_A);
     fclose(myFiles->file_B);
