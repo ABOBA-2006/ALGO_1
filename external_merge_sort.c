@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <sys/time.h>
 
 #include "defines.h"
+
 
 
 
@@ -14,25 +16,32 @@ bool isFileEmpty(FILE *file) {
 }
 
 
-void splitData(struct FILES *files, int subArrayLength, bool isBFile){
+void splitData(struct FILES *files, int subArrayLength){
+    bool isB_File = true;
 
-    for(int i = 0; i < subArrayLength; i++){
-        int number = 0;
+    while (1) {
+        int i;
+        for(i = 0; i < subArrayLength; i++){
+            int number = 0;
 
-        if (fscanf(files->file_A, "%d", &number) != EOF) {
-            if (isBFile) {
+            if (fscanf(files->file_A, "%d", &number) != 1) {
+                break; // Break if fscanf fails (reaches end of file)
+            }
+
+            if (isB_File) {
                 fprintf(files->file_B, "%d\n", number);
                 fflush(files->file_B);
             } else {
                 fprintf(files->file_C, "%d\n", number);
                 fflush(files->file_C);
             }
-        } else {
-            return;
         }
-    }
 
-    splitData(files, subArrayLength, !isBFile);
+        if (i < subArrayLength) {
+            break;
+        }
+        isB_File = !isB_File;
+    }
 }
 
 
@@ -97,7 +106,7 @@ void extendedSort(struct FILES *files, int subArrayLength) {
         freopen(PATH_A, "r+", files->file_A);
         freopen(PATH_B, "w+", files->file_B);
         freopen(PATH_C, "w+", files->file_C);
-        splitData(files, subArrayLength, true);
+        splitData(files, subArrayLength);
         freopen(PATH_A, "w+", files->file_A);
         freopen(PATH_B, "r+", files->file_B);
         freopen(PATH_C, "r+", files->file_C);
@@ -109,8 +118,11 @@ void extendedSort(struct FILES *files, int subArrayLength) {
 
 
 int main(){
-    int startSubArrayLength = 1;
+    long int startSubArrayLength = 1;
     struct FILES *myFiles = (struct FILES *)malloc(sizeof(struct FILES));
+    struct timeval start, end;
+
+    gettimeofday(&start, NULL);
 
     myFiles->file_A = fopen(PATH_A, "r+");
     myFiles->file_B = fopen(PATH_B, "w+");
@@ -127,4 +139,11 @@ int main(){
     fclose(myFiles->file_B);
     fclose(myFiles->file_C);
     free(myFiles);
+
+    gettimeofday(&end, NULL);
+
+    double time_taken = end.tv_sec + end.tv_usec / 1e6 -
+                        start.tv_sec - start.tv_usec / 1e6; // in seconds
+
+    printf("time program took %f seconds to execute\n", time_taken);
 }
