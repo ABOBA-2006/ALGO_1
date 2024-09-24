@@ -4,6 +4,8 @@
 #include "defines.h"
 
 
+void read100MB(struct FILES *files);
+
 bool isFileEmpty(FILE *file);
 
 void splitData(struct FILES *files, int subArrayLength);
