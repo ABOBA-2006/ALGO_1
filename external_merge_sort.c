@@ -7,6 +7,35 @@
 
 
 
+// Comparison function
+int compare(const void* a, const void* b) {
+    return (*(int*)a - *(int*)b);
+}
+
+void read100MB(struct FILES *files){
+    while(!feof(files->file_A2)){
+        int *buffer = calloc(AMOUNT_OF_INTS, sizeof(int));
+        int counter = 0;
+
+        while (counter<AMOUNT_OF_INTS && !feof(files->file_A2)){
+            fscanf(files->file_A2, "%d", &buffer[counter]);
+            counter++;
+        }
+
+        if(counter != AMOUNT_OF_INTS){
+            realloc(buffer, counter * sizeof(int));
+        }
+
+        qsort(buffer, counter, sizeof(int), compare);
+
+        for(int i=0; i<counter; i++){
+            fprintf(files->file_A, "%d\n", buffer[i]);
+        }
+
+        free(buffer);
+    }
+}
+
 
 bool isFileEmpty(FILE *file) {
     fseek(file, 0, SEEK_END);
@@ -19,27 +48,21 @@ bool isFileEmpty(FILE *file) {
 void splitData(struct FILES *files, int subArrayLength){
     bool isB_File = true;
 
-    while (1) {
-        int i;
-        for(i = 0; i < subArrayLength; i++){
-            int number = 0;
+    while(!feof(files->file_A)){
+        int counter = 0;
+        int number = 0;
 
-            if (fscanf(files->file_A, "%d", &number) != 1) {
-                break; // Break if fscanf fails (reaches end of file)
-            }
+        while (counter<subArrayLength && !feof(files->file_A)){
+            fscanf(files->file_A, "%d", &number);
 
-            if (isB_File) {
+            if(isB_File){
                 fprintf(files->file_B, "%d\n", number);
-                fflush(files->file_B);
-            } else {
+            }else{
                 fprintf(files->file_C, "%d\n", number);
-                fflush(files->file_C);
             }
+            counter++;
         }
 
-        if (i < subArrayLength) {
-            break;
-        }
         isB_File = !isB_File;
     }
 }
@@ -61,14 +84,12 @@ void mergeData(struct FILES *files, int subArrayLength) {
             while(xAmount < subArrayLength && yAmount < subArrayLength) {
                 if(x < y) {
                     fprintf(files->file_A, "%d\n", x);
-                    fflush(files->file_A);
                     xAmount++;
                     if(fscanf(files->file_B, "%d", &x) == EOF) {
                         xAmount = subArrayLength;
                     }
                 }else {
                     fprintf(files->file_A, "%d\n", y);
-                    fflush(files->file_A);
                     yAmount++;
                     if(fscanf(files->file_C, "%d", &y) == EOF) {
                         yAmount = subArrayLength;
@@ -79,7 +100,6 @@ void mergeData(struct FILES *files, int subArrayLength) {
 
         while(xAmount < subArrayLength) {
             fprintf(files->file_A, "%d\n", x);
-            fflush(files->file_A);
             xAmount++;
             if(fscanf(files->file_B, "%d", &x) == EOF) {
                 xAmount = subArrayLength;
@@ -88,7 +108,6 @@ void mergeData(struct FILES *files, int subArrayLength) {
 
         while (yAmount < subArrayLength) {
             fprintf(files->file_A, "%d\n", y);
-            fflush(files->file_A);
             yAmount++;
             if(fscanf(files->file_C, "%d", &y) == EOF) {
                 yAmount = subArrayLength;
@@ -118,13 +137,16 @@ void extendedSort(struct FILES *files, int subArrayLength) {
 
 
 int main(){
-    long int startSubArrayLength = 1;
+    //long int startSubArrayLength = 1;
+    long int startSubArrayLength = AMOUNT_OF_INTS;
     struct FILES *myFiles = (struct FILES *)malloc(sizeof(struct FILES));
     struct timeval start, end;
 
     gettimeofday(&start, NULL);
 
-    myFiles->file_A = fopen(PATH_A, "r+");
+    //myFiles->file_A = fopen(PATH_A, "r+");
+    myFiles->file_A = fopen(PATH_A, "w+");
+    myFiles->file_A2 = fopen(PATH_A2, "r+");
     myFiles->file_B = fopen(PATH_B, "w+");
     myFiles->file_C = fopen(PATH_C, "w+");
 
@@ -133,7 +155,9 @@ int main(){
         exit(1);
     }
 
+    read100MB(myFiles);
     extendedSort(myFiles, startSubArrayLength);
+
 
     fclose(myFiles->file_A);
     fclose(myFiles->file_B);
